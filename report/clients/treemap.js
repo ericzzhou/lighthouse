@@ -13,6 +13,7 @@ import {I18n} from '../renderer/i18n.js';
 import {Logger} from '../renderer/logger.js';
 import {TextEncoding} from '../renderer/text-encoding.js';
 
+/** @typedef {import('../../lighthouse-treemap/types/treemap')} */
 window.I18n = I18n;
 window.Logger = Logger;
 window.TextEncoding = TextEncoding;

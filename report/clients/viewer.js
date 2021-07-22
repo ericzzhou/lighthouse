@@ -14,6 +14,7 @@ import {Logger} from '../renderer/logger.js';
 import {ReportRenderer} from '../renderer/report-renderer.js';
 import {ReportUIFeatures} from '../renderer/report-ui-features.js';
 
+/** @typedef {import('../../lighthouse-viewer/types/viewer')} */
 window.DOM = DOM;
 window.Logger = Logger;
 window.ReportRenderer = ReportRenderer;
