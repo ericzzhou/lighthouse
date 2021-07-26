@@ -17,6 +17,11 @@ class CSSUsage extends FRGatherer {
     this._stylesheets = [];
     /** @param {LH.Crdp.CSS.StyleSheetAddedEvent} sheet */
     this._onStylesheetAdded = sheet => this._stylesheets.push(sheet);
+    /** @param {LH.Crdp.CSS.StyleSheetRemovedEvent} sheet */
+    this._onStylesheetRemoved = sheet => {
+      const styleSheetId = sheet.styleSheetId;
+      this._stylesheets = this._stylesheets.filter(s => s.header.styleSheetId !== styleSheetId);
+    };
     /**
      * Initialize as undefined so we can assert results are fetched.
      * @type {LH.Crdp.CSS.RuleUsage[]|undefined}
@@ -35,6 +40,7 @@ class CSSUsage extends FRGatherer {
   async startCSSUsageTracking(context) {
     const session = context.driver.defaultSession;
     session.on('CSS.styleSheetAdded', this._onStylesheetAdded);
+    session.on('CSS.styleSheetRemoved', this._onStylesheetRemoved);
 
     await session.sendCommand('DOM.enable');
     await session.sendCommand('CSS.enable');
@@ -57,6 +63,7 @@ class CSSUsage extends FRGatherer {
     const coverageResponse = await session.sendCommand('CSS.stopRuleUsageTracking');
     this._ruleUsage = coverageResponse.ruleUsage;
     session.off('CSS.styleSheetAdded', this._onStylesheetAdded);
+    session.off('CSS.styleSheetRemoved', this._onStylesheetRemoved);
   }
 
   /**
