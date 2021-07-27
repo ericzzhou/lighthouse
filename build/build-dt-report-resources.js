@@ -26,7 +26,7 @@ function writeFile(name, content) {
   fs.writeFileSync(`${distDir}/${name}`, content);
 }
 
-fs.mkdirSync(distDir, {recursive: true}); // Ensure dist is present, else rmdir will throw
+fs.mkdirSync(distDir, {recursive: true}); // Ensure dist is present, else rmdir will throw. COMPAT: when dropping Node 12, replace with fs.rm(p, {force: true})
 fs.rmdirSync(distDir, {recursive: true});
 fs.mkdirSync(distDir, {recursive: true});
 
