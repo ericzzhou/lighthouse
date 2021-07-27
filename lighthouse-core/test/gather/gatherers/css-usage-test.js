@@ -22,7 +22,7 @@ describe('.getArtifact', () => {
       .mockEvent('CSS.styleSheetAdded', {header: {styleSheetId: '2'}});
     driver.defaultSession.sendCommand
       .mockResponse('DOM.enable')
-      // @ts-ignore - Force events to emit.
+      // @ts-expect-error - Force events to emit.
       .mockResponse('CSS.enable', flushAllTimersAndMicrotasks)
       .mockResponse('CSS.startRuleUsageTracking')
       .mockResponse('CSS.getStyleSheetText', {text: 'CSS text 1'})
