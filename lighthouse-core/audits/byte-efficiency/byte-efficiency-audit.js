@@ -121,13 +121,9 @@ class UnusedBytes extends Audit {
         throw Error('Network information required in navigation');
       }
 
-      const result = await this.audit_(artifacts, networkRecords, context);
       return {
         score: 1,
         notApplicable: true,
-        explanation: result.explanation,
-        warnings: result.warnings,
-        displayValue: result.displayValue,
       };
     }
 
