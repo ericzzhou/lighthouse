@@ -116,9 +116,24 @@ class UnusedBytes extends Audit {
     };
 
     const networkRecords = await NetworkRecords.request(devtoolsLog, context);
+    if (!networkRecords.length) {
+      if (gatherContext.gatherMode === 'navigation') {
+        throw Error('Network information required in navigation');
+      }
+
+      const result = await this.audit_(artifacts, networkRecords, context);
+      return {
+        score: 1,
+        notApplicable: true,
+        explanation: result.explanation,
+        warnings: result.warnings,
+        displayValue: result.displayValue,
+      };
+    }
+
     const [result, graph, simulator] = await Promise.all([
       this.audit_(artifacts, networkRecords, context),
-      PageDependencyGraph.request({trace, devtoolsLog}, context),
+      PageDependencyGraph.request({trace, devtoolsLog}, context).catch(() => null),
       LoadSimulator.request(simulatorOptions, context),
     ]);
 
@@ -200,7 +215,7 @@ class UnusedBytes extends Audit {
 
   /**
    * @param {ByteEfficiencyProduct} result
-   * @param {Node} graph
+   * @param {Node|null} graph
    * @param {Simulator} simulator
    * @param {LH.Artifacts['GatherContext']} gatherContext
    * @return {LH.Audit.Product}
@@ -209,11 +224,16 @@ class UnusedBytes extends Audit {
     const results = result.items.sort((itemA, itemB) => itemB.wastedBytes - itemA.wastedBytes);
 
     const wastedBytes = results.reduce((sum, item) => sum + item.wastedBytes, 0);
-    const wastedMs = gatherContext.gatherMode === 'navigation' ?
-      this.computeWasteWithTTIGraph(results, graph, simulator, {
+
+    let wastedMs;
+    if (gatherContext.gatherMode === 'navigation') {
+      if (!graph) throw Error('Failed to get dependency graph in navigation mode');
+      wastedMs = this.computeWasteWithTTIGraph(results, graph, simulator, {
         providedWastedBytesByUrl: result.wastedBytesByUrl,
-      }) :
-      this.computeWastedMsWithThroughput(wastedBytes, simulator);
+      });
+    } else {
+      wastedMs = this.computeWastedMsWithThroughput(wastedBytes, simulator);
+    }
 
     let displayValue = result.displayValue || '';
     if (typeof result.displayValue === 'undefined' && wastedBytes) {
