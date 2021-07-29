@@ -17,12 +17,14 @@ const {
   throwInvalidArtifactDependency,
   assertArtifactTopologicalOrder,
 } = require('./validation.js');
-const {filterConfigByGatherMode} = require('./filters.js');
+const {filterConfigByGatherMode, filterConfigByExplicitFilters} = require('./filters.js');
 const {
   deepCloneConfigJson,
   resolveSettings,
   resolveAuditsToDefns,
   resolveGathererToDefn,
+  mergeConfigFragment,
+  mergeConfigFragmentArrayByKey,
 } = require('../../config/config-helpers.js');
 const defaultConfigPath = path.join(__dirname, './default-config.js');
 
@@ -51,6 +53,35 @@ function resolveWorkingCopy(configJSON, context) {
     configPath,
     configDir,
   };
+}
+
+/**
+ * @param {LH.Config.Json} configJSON
+ * @return {LH.Config.Json}
+ */
+function resolveExtensions(configJSON) {
+  if (!configJSON.extends) return configJSON;
+
+  if (configJSON.extends !== 'lighthouse:default') {
+    throw new Error('`lighthouse:default` is the only valid extension method.');
+  }
+
+  const {artifacts, navigations, ...extensionJSON} = configJSON;
+  const defaultClone = deepCloneConfigJson(defaultConfig);
+  const mergedConfig = mergeConfigFragment(defaultClone, extensionJSON);
+
+  mergedConfig.artifacts = mergeConfigFragmentArrayByKey(
+    defaultClone.artifacts,
+    artifacts,
+    artifact => artifact.id
+  );
+  mergedConfig.navigations = mergeConfigFragmentArrayByKey(
+    defaultClone.navigations,
+    navigations,
+    navigation => navigation.id
+  );
+
+  return mergedConfig;
 }
 
 /**
@@ -163,16 +194,17 @@ function resolveNavigationsToDefns(navigations, artifactDefns) {
 
 /**
  * @param {LH.Config.Json|undefined} configJSON
- * @param {{gatherMode: LH.Gatherer.GatherMode, configPath?: string, settingsOverrides?: LH.SharedFlagsSettings}} context
+ * @param {Omit<LH.Config.FRContext, 'gatherMode'> & {gatherMode: LH.Gatherer.GatherMode}} context
  * @return {{config: LH.Config.FRConfig, warnings: string[]}}
  */
 function initializeConfig(configJSON, context) {
   const status = {msg: 'Initialize config', id: 'lh:config'};
   log.time(status, 'verbose');
 
-  const {configWorkingCopy, configDir} = resolveWorkingCopy(configJSON, context);
+  let {configWorkingCopy, configDir} = resolveWorkingCopy(configJSON, context); // eslint-disable-line prefer-const
 
-  // TODO(FR-COMPAT): handle config extension
+  configWorkingCopy = resolveExtensions(configWorkingCopy);
+
   // TODO(FR-COMPAT): handle config plugins
 
   const settings = resolveSettings(configWorkingCopy.settings || {}, context.settingsOverrides);
@@ -192,10 +224,9 @@ function initializeConfig(configJSON, context) {
   // TODO(FR-COMPAT): validate navigations
   // TODO(FR-COMPAT): validate audits
   // TODO(FR-COMPAT): validate categories
-  // TODO(FR-COMPAT): filter config using onlyAudits/onlyCategories
-  // TODO(FR-COMPAT): always keep base/shared artifacts/audits (Stacks, FullPageScreenshot, etc)
 
   config = filterConfigByGatherMode(config, context.gatherMode);
+  config = filterConfigByExplicitFilters(config, settings);
 
   log.timeEnd(status);
   return {config, warnings: []};
