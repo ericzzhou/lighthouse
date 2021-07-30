@@ -114,13 +114,11 @@ class UnusedBytes extends Audit {
       devtoolsLog,
       settings,
     };
-
     const networkRecords = await NetworkRecords.request(devtoolsLog, context);
-    if (!networkRecords.length) {
-      if (gatherContext.gatherMode === 'navigation') {
-        throw Error('Network information required in navigation');
-      }
 
+    // Requesting load simulator requires non-empty network records.
+    // Timespan is not guaranteed to generate network records, so mark N/A if empty.
+    if (!networkRecords.length && gatherContext.gatherMode === 'timespan') {
       return {
         score: 1,
         notApplicable: true,
@@ -129,7 +127,11 @@ class UnusedBytes extends Audit {
 
     const [result, graph, simulator] = await Promise.all([
       this.audit_(artifacts, networkRecords, context),
-      PageDependencyGraph.request({trace, devtoolsLog}, context).catch(() => null),
+      // Page dependency graph is only used in navigation mode.
+      // TODO(FR-COMPAT): Use dependency graph in timespan mode.
+      gatherContext.gatherMode === 'navigation' ?
+        PageDependencyGraph.request({trace, devtoolsLog}, context) :
+        null,
       LoadSimulator.request(simulatorOptions, context),
     ]);
 
@@ -223,7 +225,7 @@ class UnusedBytes extends Audit {
 
     let wastedMs;
     if (gatherContext.gatherMode === 'navigation') {
-      if (!graph) throw Error('Failed to get dependency graph in navigation mode');
+      if (!graph) throw Error('Page dependency graph should always be computed in navigation mode');
       wastedMs = this.computeWasteWithTTIGraph(results, graph, simulator, {
         providedWastedBytesByUrl: result.wastedBytesByUrl,
       });
