@@ -364,27 +364,4 @@ describe('Byte efficiency base audit', () => {
       score: 1,
     });
   });
-
-  it('should throw if no network records in navigation mode', async () => {
-    class MockAudit extends ByteEfficiencyAudit {
-      static audit_(artifacts, records) {
-        return {
-          items: records,
-          headings: [],
-        };
-      }
-    }
-
-    const artifacts = {
-      GatherContext: {gatherMode: 'navigation'},
-      traces: {defaultPass: trace},
-      devtoolsLogs: {defaultPass: []},
-    };
-    const computedCache = new Map();
-
-    const modestThrottling = {rttMs: 150, throughputKbps: 1000, cpuSlowdownMultiplier: 2};
-    const settings = {throttlingMethod: 'simulate', throttling: modestThrottling};
-    const resultPromise = MockAudit.audit(artifacts, {settings, computedCache});
-    await expect(resultPromise).rejects.toThrow(/Network information required in navigation/);
-  });
 });
