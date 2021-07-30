@@ -14,8 +14,11 @@ import {Logger} from '../renderer/logger.js';
 import {ReportRenderer} from '../renderer/report-renderer.js';
 import {ReportUIFeatures} from '../renderer/report-ui-features.js';
 
-/** @typedef {import('../../lighthouse-viewer/types/viewer')} */
+// @ts-expect-error
 window.DOM = DOM;
+// @ts-expect-error
 window.Logger = Logger;
+// @ts-expect-error
 window.ReportRenderer = ReportRenderer;
+// @ts-expect-error
 window.ReportUIFeatures = ReportUIFeatures;
